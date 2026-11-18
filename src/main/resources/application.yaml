@@ -1,3 +1,94 @@
+server:
+  port: 8096
+
 spring:
+  config:
+    import: optional:file:.env[.properties]   # solo para correr desde el IDE
   application:
     name: ms-vidasalud-audit
+
+  cloud:
+    azure:
+      active-directory:
+        enabled: true
+        profile:
+          tenant-id: ${AZURE_TENANT_ID}
+        credential:
+          client-id: ${AZURE_CLIENT_ID}
+        app-id-uri: ${AZURE_APP_ID_URI:api://${AZURE_CLIENT_ID}}
+
+  mvc:
+    problemdetails:
+      enabled: true
+    apiversion:
+      use:
+        path-segment: 1   # /api/{version}/...
+      supported: 1
+
+  datasource:
+    url: jdbc:oracle:thin:@//${DB_HOST:localhost}:${DB_PORT:1521}/${DB_SERVICE:XEPDB1}
+    username: ${DB_USERNAME:vidasalud}
+    password: ${DB_PASSWORD}
+    driver-class-name: oracle.jdbc.OracleDriver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092,localhost:9093,localhost:9094}
+    client-id: ${spring.application.name}
+    consumer:
+      # Grupo por defecto (consumidor de appointments.events). El consumidor de audit.timeline
+      # declara su propio grupo en @KafkaListener(groupId = ...).
+      group-id: vidasalud-audit
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
+      max-poll-records: 50
+      max-poll-interval: 5m
+      heartbeat-interval: 10s
+      properties:
+        session.timeout.ms: 30000
+        partition.assignment.strategy: org.apache.kafka.clients.consumer.CooperativeStickyAssignor
+    listener:
+      ack-mode: record
+      concurrency: 3
+      missing-topics-fatal: false
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # Un serializer por tópico: el timeline viaja como JSON y los DLT reciben los bytes originales.
+      value-serializer: org.springframework.kafka.support.serializer.DelegatingByTopicSerializer
+      acks: all
+      properties:
+        spring.kafka.value.serialization.bytopic.config: "audit[.]timeline:org.springframework.kafka.support.serializer.JacksonJsonSerializer,.*[.]DLT:org.apache.kafka.common.serialization.ByteArraySerializer"
+        spring.json.add.type.headers: false
+        enable.idempotence: true
+        delivery.timeout.ms: 30000
+        request.timeout.ms: 10000
+        max.block.ms: 10000
+
+vidasalud:
+  kafka:
+    topico-eventos: appointments.events
+    topico-timeline: audit.timeline
+    grupo-timeline: vidasalud-audit-timeline
+    sufijo-dlt: .audit.DLT                 # appointments.events.audit.DLT y audit.timeline.audit.DLT
+    espera-envio: 10s                      # cuánto espera el consumidor la confirmación de audit.timeline
+    reintentos:
+      maximo: 3
+      intervalo-inicial: 1s
+      multiplicador: 2.0
+      intervalo-maximo: 10s
+
+logging:
+  pattern:
+    correlation: "[%X{traceId:-}] "
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
