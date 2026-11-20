@@ -2,7 +2,7 @@
 
 Arma el timeline de auditoría (quién / qué / cuándo / desde dónde) con dos consumidores Kafka:
 
-1. Grupo `vidasalud-audit`: lee `appointments.events` y publica la entrada en `audit.timeline` (clave = eventId).
+1. Grupo `vidasalud-audit`: lee `appointments.events` y publica la entrada en `audit.timeline` (clave = atencionId).
 2. Grupo `vidasalud-audit-timeline`: lee `audit.timeline` y la guarda en Oracle (`AUD_EVENTO`).
 
 | | |

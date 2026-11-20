@@ -29,7 +29,7 @@ class PublicadorTimelineTest {
     void sinConfirmacionDeKafkaElErrorSePropaga() {
         CompletableFuture<SendResult<String, Object>> fallido = CompletableFuture.failedFuture(new KafkaException("caído"));
         EntradaAuditoria entrada = entrada();
-        when(template.send("audit.timeline", "e-1", entrada)).thenReturn(fallido);
+        when(template.send("audit.timeline", "42", entrada)).thenReturn(fallido);
 
         assertThatThrownBy(() -> publicador.publicar(entrada)).isInstanceOf(IllegalStateException.class);
     }
@@ -37,11 +37,12 @@ class PublicadorTimelineTest {
     @Test
     void unaEsperaVencidaTambienSePropaga() {
         EntradaAuditoria entrada = entrada();
-        when(template.send("audit.timeline", "e-1", entrada)).thenReturn(new CompletableFuture<>());
+        when(template.send("audit.timeline", "42", entrada)).thenReturn(new CompletableFuture<>());
 
         assertThatThrownBy(() -> publicador.publicar(entrada)).isInstanceOf(IllegalStateException.class);
     }
 
+    /** La clave del registro es el atencionId (42), no el eventId ("e-1"): por eso los envíos esperan "42". */
     private static EntradaAuditoria entrada() {
         return new EntradaAuditoria(1, "e-1", "APPOINTMENT_STATUS_CHANGED", Instant.parse("2026-11-16T13:00:00Z"), 42L,
                 "SOLICITADA", "CONFIRMADA", "oid-op", "Olga", "Operador", "ms-vidasalud-appointments", null, "abc");

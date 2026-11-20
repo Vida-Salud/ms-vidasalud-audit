@@ -13,7 +13,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
- * Publica cada {@link EntradaAuditoria} en {@code audit.timeline} con clave = eventId.
+ * Publica cada {@link EntradaAuditoria} en {@code audit.timeline} con clave = atencionId, por dos razones:
+ * <ul>
+ *   <li>todas las entradas de una atención caen en la misma partición y se leen en orden;</li>
+ *   <li>la compactación del tópico ({@code compact,delete}) conserva el último estado conocido de cada atención.</li>
+ * </ul>
+ * El historial completo e inmutable queda en Oracle (tabla {@code AUD_EVENTO}, una fila por eventId), no en Kafka.
  * <p>
  * A diferencia de appointments, aquí el envío es <b>síncrono</b>: se ejecuta dentro de un consumidor y,
  * si Kafka no confirma, la excepción sube al error handler, que reintenta y no avanza el offset.
@@ -33,8 +38,9 @@ public class PublicadorTimeline {
     }
 
     public void publicar(EntradaAuditoria entrada) {
+        String clave = String.valueOf(entrada.atencionId());
         try {
-            RecordMetadata destino = kafkaTemplate.send(properties.topicoTimeline(), entrada.eventId(), entrada)
+            RecordMetadata destino = kafkaTemplate.send(properties.topicoTimeline(), clave, entrada)
                     .get(properties.esperaEnvio().toMillis(), TimeUnit.MILLISECONDS)
                     .getRecordMetadata();
             log.info("Entrada de auditoría publicada [topico={}, particion={}, offset={}, eventId={}, atencionId={}]",

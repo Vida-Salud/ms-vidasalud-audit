@@ -8,8 +8,8 @@ import jakarta.validation.constraints.Positive;
 import java.time.Instant;
 
 /**
- * Entrada v1 de {@code audit.timeline}: quién, qué, cuándo y desde dónde. Clave del registro = eventId,
- * para que la compactación del tópico conserve una sola copia de cada entrada.
+ * Entrada v1 de {@code audit.timeline}: quién, qué, cuándo y desde dónde. Clave del registro = atencionId,
+ * para que la compactación del tópico conserve el último estado conocido de cada atención.
  * Contrato en infra/docs/eventos-v1.md.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
