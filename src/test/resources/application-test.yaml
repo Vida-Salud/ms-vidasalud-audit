@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:vidasalud;MODE=Oracle;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+  kafka:
+    listener:
+      auto-startup: false   # los tests no necesitan un broker
+
+  cloud:
+    azure:
+      active-directory:
+        profile:
+          tenant-id: 9832f4f3-52dd-4367-a3b0-b4437d223f58
+        credential:
+          client-id: c0093a05-7296-42f7-b6e7-d263c3db2fb0
